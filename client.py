@@ -4,6 +4,7 @@ import socket
 import inputgenerator
 import resultchecker
 import pandas as pd
+import json
 
 
 class Receiver:
@@ -38,6 +39,7 @@ class Receiver:
         """
         decoded = []
         i = 0
+        n = 0
         while True:
             try:
                 id, data = self.recv()
@@ -65,8 +67,7 @@ def printresult(msg):
     print("MSG! len: {}/{} equal: {} right: {} wrong: {}".format(msglen, expectedlen, "yes" if equal else "NO", right, wrong))
 
 
-messages = []
-
+records = []
 try:
     while True:
         r = Receiver(socket.gethostname(), 12345)
@@ -76,9 +77,13 @@ try:
         total = len(packets)
         succeeded = len(success_packets)
         bytessuccdecoded = sum(map(lambda x: len(x[0]), success_packets))
+        records.append({
+            "packets_successfully_decoded_pct": succeeded/float(total),
+            "bytes_successfully_decoded_pct": bytessuccdecoded/float(inputgenerator.length),
+        })
         print("Succeeded decodes: {}%, payload bytes decoded: {}%".format(succeeded/float(total), bytessuccdecoded/float(inputgenerator.length)))
 except KeyboardInterrupt:
     pass
-
-#corrtrans, corrdata = resultchecker.stats(messages)
-#print("Results! totally correct transmissions: {} pct of correct data: {}".format(corrtrans, corrdata))
+df = pd.read_json(json.dumps(records))  # type: pd.DataFrame
+df.to_json("output_client.json")
+print("wrote records!")

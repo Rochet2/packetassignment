@@ -7,6 +7,7 @@ import inputgenerator
 import math
 import time
 import pandas as pd
+import json
 
 
 class Sender:
@@ -65,6 +66,7 @@ if losspct:
     sender.send3(expected)
     print("Losspct: {}, Sent bytes: {}, Sent packets: {}, Lost packets: {}", losspct, sender.sentbytes, sender.sentpackets, sender.lostpackets)
 else:
+    records = []
     step = 0.05
     for i in (x * step for x in range(0, int(math.floor(1/step))+1)):
         sender = Sender(socket.gethostname(), 12345, min(i, 1))
@@ -72,6 +74,14 @@ else:
         print("Losspct: {}, Sent bytes: {}, Sent packets: {}, Lost packets: {}".format(i, sender.sentbytes,
               sender.sentpackets, sender.lostpackets))
         time.sleep(1.5)
+        records.append({
+            "loss_pct": i,
+            "bytes_sent": sender.sentbytes,
+            "packets_sent": sender.sentpackets,
+            "packets_lost": sender.lostpackets,
+        })
+    df = pd.read_json(json.dumps(records))  # type: pd.DataFrame
+    df.to_json("output_server.json")
 
 
 
