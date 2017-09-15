@@ -1,14 +1,16 @@
 #!/usr/bin/python
 
-import socket
-import inputgenerator
-import resultchecker
-import pandas as pd
 import json
+import math
+import socket
+
+import pandas as pd
+
+import inputgenerator
 
 
 class Receiver:
-    def __init__(self, host, port, packetlen=100, timeout=1):
+    def __init__(self, host, port, packetlen=100, timeout=0.1):
         """
         timeout is set only after receiving one packet.
         """
@@ -38,33 +40,28 @@ class Receiver:
         Then returns the tuples of (decoded data, successful, packetid).
         """
         decoded = []
-        i = 0
-        n = 0
+        i = 1
         while True:
             try:
                 id, data = self.recv()
             except socket.timeout:
                 break
-            if id == i:
+            idd = math.ceil((id + 1) / 3)
+            if idd == i:
                 decoded.append((data, True, id))
                 i += 1
-            if id > i:
-                while id > i:
+            if idd > i:
+                while idd > i:
                     decoded.append((self.getcontentlen() * inputgenerator.lostindicator, False, id))
                     i += 1
                 decoded.append((data, True, id))
                 i += 1
-                    # skip packets with lower id than we have already received
-                    # they are duplicates.
+                # skip packets with lower id than we have already received
+                # they are duplicates.
         return decoded
 
     def getcontentlen(self):
-        return self.packetlen-1
-
-
-def printresult(msg):
-    right, wrong, equal, expectedlen, msglen = resultchecker.check(msg)
-    print("MSG! len: {}/{} equal: {} right: {} wrong: {}".format(msglen, expectedlen, "yes" if equal else "NO", right, wrong))
+        return self.packetlen - 1
 
 
 records = []
@@ -78,10 +75,14 @@ try:
         succeeded = len(success_packets)
         bytessuccdecoded = sum(map(lambda x: len(x[0]), success_packets))
         records.append({
-            "packets_successfully_decoded_pct": succeeded/float(total),
-            "bytes_successfully_decoded_pct": bytessuccdecoded/float(inputgenerator.length),
+            "packets_successfully_decoded_pct": succeeded / float(total),
+            "packets_successfully_decoded": succeeded,
+            "bytes_successfully_decoded_pct": bytessuccdecoded / float(inputgenerator.length),
+            "bytes_successfully_decoded": bytessuccdecoded,
         })
-        print("Succeeded decodes: {}%, payload bytes decoded: {}%".format(succeeded/float(total), bytessuccdecoded/float(inputgenerator.length)))
+        print("Succeeded decodes: {}%, payload bytes decoded: {}%".format(succeeded / float(total),
+                                                                          bytessuccdecoded / float(
+                                                                              inputgenerator.length)))
 except KeyboardInterrupt:
     pass
 df = pd.read_json(json.dumps(records))  # type: pd.DataFrame
