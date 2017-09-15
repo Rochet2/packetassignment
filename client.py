@@ -1,8 +1,9 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import socket
 import inputgenerator
 import resultchecker
+import pandas as pd
 
 
 class Receiver:
@@ -33,26 +34,27 @@ class Receiver:
     def receive(self):
         """
         Receives data until 1 second has passed since last packet.
-        Then returns the data string received so far.
+        Then returns the tuples of (decoded data, successful, packetid).
         """
-        result = ""
+        decoded = []
         i = 0
         while True:
             try:
                 id, data = self.recv()
             except socket.timeout:
                 break
-            print(id, i)
             if id == i:
-                result += data
+                decoded.append((data, True, id))
                 i += 1
             if id > i:
                 while id > i:
-                    result += self.getcontentlen() * inputgenerator.lostindicator
+                    decoded.append((self.getcontentlen() * inputgenerator.lostindicator, False, id))
                     i += 1
+                decoded.append((data, True, id))
+                i += 1
                     # skip packets with lower id than we have already received
                     # they are duplicates.
-        return result
+        return decoded
 
     def getcontentlen(self):
         return self.packetlen-1
@@ -68,11 +70,15 @@ messages = []
 try:
     while True:
         r = Receiver(socket.gethostname(), 12345)
-        msg = r.receive()
+        packets = r.receive()
         r.socket.close()
-        printresult(msg)
-        messages.append(msg)
+        success_packets = filter(lambda x: x[1], packets)
+        total = len(packets)
+        succeeded = len(success_packets)
+        bytessuccdecoded = sum(map(lambda x: len(x[0]), success_packets))
+        print("Succeeded decodes: {}%, payload bytes decoded: {}%".format(succeeded/float(total), bytessuccdecoded/float(inputgenerator.length)))
 except KeyboardInterrupt:
     pass
 
-print(resultchecker.check(messages))
+#corrtrans, corrdata = resultchecker.stats(messages)
+#print("Results! totally correct transmissions: {} pct of correct data: {}".format(corrtrans, corrdata))

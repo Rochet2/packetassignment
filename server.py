@@ -1,23 +1,28 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 import socket
 import random
-import time
 import sys
 import inputgenerator
+import math
+import time
+import pandas as pd
 
 
 class Sender:
-    def __init__(self, host, port, losspct=0, packetlen=100):
+
+    def __init__(self, host, port, losspct=0.0, packetlen=100):
         self.address = (host, port)
         self.socket = socket.socket(type=socket.SOCK_DGRAM)
         self.losspct = losspct
         self.packetlen = packetlen
         self.packetid = -1
+        self.sentbytes = 0
+        self.sentpackets = 0
+        self.lostpackets = 0
         assert losspct <= 1, "losspct must be in range [0,1]"
         assert losspct >= 0, "losspct must be in range [0,1]"
         assert self.packetlen > 0, "packetlen must be > 0"
-        self.sentbytes = 0
 
     def send3(self, string):
         for p in self.split(string):
@@ -32,8 +37,11 @@ class Sender:
 
     def send_packet(self, p):
         self.sentbytes += len(p)
+        self.sentpackets += 1
         if random.random() < 1 - self.losspct:
             self.socket.sendto(p, self.address)
+        else:
+            self.lostpackets += 1
 
     def getpacketid(self):
         self.packetid += 1
@@ -46,14 +54,25 @@ class Sender:
 
     @staticmethod
     def getlosspct():
-        return len(sys.argv) > 1 and float(sys.argv[1]) or 0
+        return len(sys.argv) > 1 and float(sys.argv[1]) or None
 
 
-expected = inputgenerator.randomstring(300)
+expected = inputgenerator.randomstring()
 
-while not str(input()):
-    sender = Sender(socket.gethostname(), 12345, Sender.getlosspct())
+losspct = Sender.getlosspct()
+if losspct:
+    sender = Sender(socket.gethostname(), 12345, losspct)
     sender.send3(expected)
+    print("Losspct: {}, Sent bytes: {}, Sent packets: {}, Lost packets: {}", losspct, sender.sentbytes, sender.sentpackets, sender.lostpackets)
+else:
+    step = 0.05
+    for i in (x * step for x in range(0, int(math.floor(1/step))+1)):
+        sender = Sender(socket.gethostname(), 12345, min(i, 1))
+        sender.send3(expected)
+        print("Losspct: {}, Sent bytes: {}, Sent packets: {}, Lost packets: {}".format(i, sender.sentbytes,
+              sender.sentpackets, sender.lostpackets))
+        time.sleep(1.5)
+
 
 
 
@@ -82,5 +101,6 @@ while not str(input()):
     # for each packet
     # inputgenerator.lostindicator does not occur in the input data and can be used to indicate
     # that there was a missing packet
+    # 1.5 seconds are waited between each new transmission from server to client
 
     # document packet structure!

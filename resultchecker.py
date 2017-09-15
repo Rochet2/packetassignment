@@ -1,7 +1,10 @@
 import inputgenerator
-import statistics
 
-__expected = inputgenerator.randomstring(300)
+__expected = inputgenerator.randomstring()
+
+
+def mean(numbers):
+    return float(sum(numbers)) / max(len(numbers), 1)
 
 
 def check(message):
@@ -9,11 +12,10 @@ def check(message):
     right = 0
     wrong = 0
     for i in range(len(__expected)):
-        print(i)
-        if __expected[i] == message[i]:
-            right += 1
-        else:
+        if i >= len(message) or __expected[i] != message[i]:
             wrong += 1
+        else:
+            right += 1
     return right, wrong, equal, len(__expected), len(message)
 
 
@@ -21,7 +23,7 @@ def stats(messages):
     isequal = []
     rightpct = []
     for msg in messages:
-        right, wrong, equal, expectedlen, msglen = check(msg)
+        right, wrong, equal, expectedlen, msglen = check(msg[0])
         isequal.append(equal)
         rightpct.append(right/float(expectedlen))
-    return statistics.mean(isequal), statistics.mean(rightpct)
+    return mean(isequal), mean(rightpct)

@@ -2,12 +2,13 @@ import random
 import string
 
 lostindicator = "_"
+length = 10000
 
 assert isinstance(lostindicator, str), "lostindicator must be a string"
 assert len(lostindicator) == 1, "lostindicator length must be 1"
 
 
-def randomstring(length):
+def randomstring():
     rand = random.Random()
     rand.seed(1)
     letters = string.ascii_letters.replace(lostindicator, "")
