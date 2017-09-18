@@ -28,7 +28,7 @@ else:
     step = 0.01
     for i in (x * step for x in range(0, int(math.floor(1 / step)) + 1)):
         for n in [-0.001, 0, 0.001]:
-            record = sender.Send(payload, max(min(i+n, 1), 0))
+            record = sender.Send(payload, max(min(i + n, 1), 0))
             records.append(record)
             print(record)
             time.sleep(0.15)

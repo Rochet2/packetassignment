@@ -10,7 +10,7 @@ df = df.fillna(0)
 
 print(df)
 
-df["packets_not_decoded_pct"] = 1-df.packets_successfully_decoded_pct
+df["packets_not_decoded_pct"] = 1 - df.packets_successfully_decoded_pct
 
 df.plot(x='loss_pct', y=['packets_successfully_decoded_pct', 'packets_not_decoded_pct']).plot()
 plt.show()
